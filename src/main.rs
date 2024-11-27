@@ -434,14 +434,17 @@ fn mount_cgroupfs() {
     let cmdline = std::fs::read_to_string("/proc/cmdline").unwrap();
     if cmdline.contains("SYSTEMD_CGROUP_ENABLE_LEGACY_FORCE=1") {
         utils::do_mount("cgroup", "/sys/fs/cgroup", "tmpfs", 0, "");
-        let subsystems = vec!["cpu", "cpuacct", "blkio", "memory", "devices", "pids"];
+        let subsystems = vec!["cpu,cpuacct", "cpuset", "blkio", "memory", "devices", "pids"];
         for subsys in &subsystems {
             let target = format!("/sys/fs/cgroup/{}", subsys);
             utils::do_mkdir(&target);
             // Don't treat failure as critical here, since the kernel may not
             // support all the legacy cgroups.
+            log!("mounting {}", subsys);
             utils::do_mount(subsys, &target, "cgroup", 0, subsys);
         }
+        utils::do_symlink("/sys/fs/cgroup/cpu,cpuacct", "/sys/fs/cgroup/cpu");
+        utils::do_symlink("/sys/fs/cgroup/cpu,cpuacct", "/sys/fs/cgroup/cpuacct");
     } else {
         utils::do_mount("cgroup2", "/sys/fs/cgroup", "cgroup2", 0, "");
     }
